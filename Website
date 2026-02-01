@@ -1,0 +1,808 @@
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BarChart3,
+  Github,
+  GraduationCap,
+  Linkedin,
+  Link as LinkIcon,
+  Mail,
+  MapPin,
+  ShieldCheck,
+  Terminal,
+  UserRound,
+  Info,
+  Folder,
+  Briefcase,
+} from "lucide-react";
+
+function Card({ className = "", children }) {
+  return (
+    <div className={`rounded-2xl border border-zinc-200 bg-white shadow-sm ${className}`}>
+      {children}
+    </div>
+  );
+}
+function CardHeader({ className = "", children }) {
+  return <div className={`p-6 pb-3 ${className}`}>{children}</div>;
+}
+function CardContent({ className = "", children }) {
+  return <div className={`p-6 pt-0 ${className}`}>{children}</div>;
+}
+function CardTitle({ className = "", children }) {
+  return <div className={`font-semibold ${className}`}>{children}</div>;
+}
+
+function Button({ variant, className = "", style, children, asChild = false, ...props }) {
+  const base =
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition leading-none";
+  const solid = "text-white";
+  const outline = "border border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50";
+
+  const finalClassName = `${base} ${variant === "outline" ? outline : solid} ${className}`;
+
+  // If asChild=true, clone the child (usually <a>) and apply button styling to it.
+  if (asChild && React.isValidElement(children)) {
+    const child = children;
+    return React.cloneElement(child, {
+      ...props,
+      className: `${finalClassName} ${child.props.className || ""}`,
+      style: { ...(child.props.style || {}), ...(style || {}) },
+    });
+  }
+
+  return (
+    <button {...props} className={finalClassName} style={style} type={props.type || "button"}>
+      {children}
+    </button>
+  );
+}
+
+function Separator({ orientation = "horizontal", className = "" }) {
+  if (orientation === "vertical") return <div className={`w-px bg-zinc-200 ${className}`} />;
+  return <div className={`h-px w-full bg-zinc-200 ${className}`} />;
+}
+
+/**
+ * White page, black/grey minimalism, bright blue accent (#0052FE).
+ */
+
+const ACCENT_HEX = "#0052fe";
+const PHOTO_URL = "/max.png";
+
+const LINKEDIN_URL = "https://www.linkedin.com/in/maxkyrylyuk/";
+const GITHUB_URL = "https://github.com/maxk2107"; // keep for Links section
+const EMAIL = "maxkyrylyuk06@gmail.com";
+const CV_URL = "/cv.pdf"; // put your PDF in /public/cv.pdf
+
+function NavLink({ href, children }) {
+  return (
+    <a href={href} className="text-sm text-zinc-600 hover:text-zinc-950 transition">
+      {children}
+    </a>
+  );
+}
+
+function PrimaryButton({ children, ...props }) {
+  return (
+    <Button
+      {...props}
+      className={`rounded-xl text-white hover:opacity-95 ${props.className || ""}`}
+      style={{ backgroundColor: ACCENT_HEX }}
+    >
+      {children}
+    </Button>
+  );
+}
+
+function OutlineButton({ children, ...props }) {
+  return (
+    <Button
+      {...props}
+      variant="outline"
+      className={`rounded-xl border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 ${props.className || ""}`}
+    >
+      {children}
+    </Button>
+  );
+}
+
+function Section({ id, tone = "white", children }) {
+  const bg = tone === "soft" ? "bg-zinc-50" : "bg-white";
+  return (
+    <section id={id} className={`scroll-mt-24 ${bg} py-14 sm:py-16`}>
+      <div className="mx-auto max-w-6xl px-4">{children}</div>
+    </section>
+  );
+}
+
+function Divider() {
+  return (
+    <div className="bg-white">
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="h-px w-full bg-zinc-200" />
+      </div>
+    </div>
+  );
+}
+
+function ProjectCard({ p, onExpand }) {
+  return (
+    <Card className="h-full rounded-2xl border-zinc-200 bg-white shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate text-base font-semibold text-zinc-950">{p.title}</div>
+            <div className="mt-1 text-sm text-zinc-600">{p.oneLiner}</div>
+          </div>
+          <div className="shrink-0 rounded-xl border border-zinc-200 bg-white p-2">
+            <p.icon className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+          </div>
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        <div className="text-sm leading-relaxed text-zinc-600">{p.blurb}</div>
+
+        <div className="flex flex-wrap gap-2">
+          {p.tags.map((t) => (
+            <span
+              key={t}
+              className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+
+        {/* Single CTA: Expand (replaces GitHub button in projects grid) */}
+        <div className="pt-1">
+          <Button
+            variant="outline"
+            className="rounded-xl border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"
+            onClick={() => onExpand(p)}
+          >
+            Expand <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ExperienceItem({ role, org, meta, bullets }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="font-semibold text-zinc-950">{role}</div>
+        <div className="text-sm text-zinc-600">{meta}</div>
+      </div>
+      <div className="mt-1 text-sm text-zinc-600">{org}</div>
+      <ul className="mt-4 space-y-2 text-sm text-zinc-600">
+        {bullets.map((b, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ProjectModal({ project, onClose }) {
+  if (!project) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-3xl rounded-2xl bg-white shadow-xl border border-zinc-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 p-6 border-b border-zinc-200">
+          <div className="min-w-0">
+            <div className="text-xl font-semibold text-zinc-950">{project.title}</div>
+            <div className="mt-1 text-sm text-zinc-600">{project.oneLiner}</div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {project.details ? (
+            <p className="text-sm leading-relaxed text-zinc-600">{project.details}</p>
+          ) : null}
+
+          {project.highlights?.length ? (
+            <div>
+              <div className="text-sm font-medium text-zinc-950">Highlights</div>
+              <ul className="mt-2 space-y-2 text-sm text-zinc-600">
+                {project.highlights.map((h, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {project.stack?.length ? (
+            <div>
+              <div className="text-sm font-medium text-zinc-950">Stack</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {project.stack.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {project.links?.length ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {project.links.map((l) => (
+                <Button
+                  key={l.label}
+                  variant="outline"
+                  className="rounded-xl border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"
+                  onClick={() => window.open(l.href, "_blank")}
+                >
+                  {l.label} <ArrowRight className="h-4 w-4" />
+                </Button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeProject, setActiveProject] = useState(null);
+
+  const navLinks = useMemo(
+    () => [
+      { href: "#about", label: "About" },
+      { href: "#projects", label: "Projects" },
+      { href: "#experience", label: "Experience" },
+    ],
+    []
+  );
+
+  const projects = useMemo(
+    () => [
+      {
+        title: "Macro Indicator Scanner",
+        oneLiner: "Trader-ready macro dashboard.",
+        blurb:
+          "Python pipeline that pulls indicators, normalises formats, and outputs a clean decision table (Current / Previous / Δ / Expected).",
+        tags: ["Python", "Macro"],
+        icon: Terminal,
+
+        // Modal content
+        details:
+          "A macro workflow tool built for speed: pull key releases, standardise messy formats, and output a decision-ready view for trading and weekly reviews.",
+        highlights: [
+          "Normalises inconsistent formats (units, naming, frequencies)",
+          "Outputs clean Current / Previous / Δ / Expected tables",
+          "Designed for repeatable scanning + decision logging",
+        ],
+        stack: ["Python", "Pandas", "Data normalisation", "APIs / scraping"],
+        links: [
+          // keep links here if you want them inside the modal (not on the card)
+          { label: "GitHub", href: GITHUB_URL },
+        ],
+      },
+      {
+        title: "Algorithmic Trading Model",
+        oneLiner: "Rules → execution → risk controls.",
+        blurb:
+          "Systematic strategy framework with entry/exit logic, position sizing, and risk limits designed for repeatable decision-making.",
+        tags: ["Systematic", "Risk"],
+        icon: ShieldCheck,
+
+        details:
+          "A rules-first trading framework that turns discretionary ideas into a repeatable process — entries, exits, sizing, and risk limits built in.",
+        highlights: [
+          "Entry/exit rules with clear invalidation",
+          "Position sizing + risk limits (drawdown-aware)",
+          "Designed for journalling, iteration, and backtesting",
+        ],
+        stack: ["Rule design", "Risk management", "Backtesting workflow"],
+        links: [],
+      },
+      {
+        title: "Systematic Risk Model",
+        oneLiner: "Risk regime scoring.",
+        blurb:
+          "Tracks key economic indicators and summarises regimes to support rule-based positioning.",
+        tags: ["Risk", "Process"],
+        icon: ShieldCheck,
+
+        details:
+          "A regime scoring model that summarises macro conditions into a single ‘risk temperature’ to guide positioning and avoid trading against the environment.",
+        highlights: [
+          "Signal selection mapped to risk-on / risk-off behaviour",
+          "Simple scoring that stays explainable (no black box)",
+          "Built for weekly refresh + decision support",
+        ],
+        stack: ["Macro indicators", "Scoring model", "Decision tables"],
+        links: [],
+      },
+      {
+        title: "Audit Automation",
+        oneLiner: "Control mapping at speed.",
+        blurb:
+          "Automation to map internal controls across MiCA, CSSF, ESMA, SOX, SOC and CBI frameworks.",
+        tags: ["Audit", "Controls"],
+        icon: BarChart3,
+
+        details:
+          "Automation that speeds up control mapping and reduces manual effort when aligning controls across multiple regulatory frameworks.",
+        highlights: [
+          "Maps controls to multiple frameworks consistently",
+          "Cuts repeat manual work and improves traceability",
+          "Built with audit-readiness and clarity in mind",
+        ],
+        stack: ["Process design", "Control mapping", "Automation"],
+        links: [],
+      },
+      {
+        title: "P1",
+        oneLiner: "Placeholder project.",
+        blurb: "Project slot reserved for future work.",
+        tags: ["TBD"],
+        icon: Terminal,
+        details:
+          "Reserved for the next build. When you’re ready, we’ll drop in a proper case study with metrics and screenshots.",
+        highlights: [],
+        stack: [],
+        links: [],
+      },
+      {
+        title: "P2",
+        oneLiner: "Placeholder project.",
+        blurb: "Project slot reserved for future work.",
+        tags: ["TBD"],
+        icon: Terminal,
+        details:
+          "Reserved for the next build. Add a project here that shows ‘business impact’ (time saved, risk reduced, revenue helped).",
+        highlights: [],
+        stack: [],
+        links: [],
+      },
+    ],
+    []
+  );
+
+  const experience = useMemo(
+    () => [
+      {
+        role: "Investment Analyst Intern",
+        org: "TET Capital",
+        meta: "Sep 2025 – Present",
+        bullets: [
+          "Build and update models using economic indicators to assess systematic risk.",
+          "Integrate macro insights into investment strategy and reporting.",
+        ],
+      },
+      {
+        role: "Internal Audit Intern",
+        org: "Coinbase",
+        meta: "May 2025 – Aug 2025",
+        bullets: [
+          "Built automation to map controls to MiCA, CSSF, ESMA, SOX, SOC and CBI frameworks.",
+          "Performed DORA/MiCA testing using Snowflake, Databricks and Datadog.",
+        ],
+      },
+      {
+        role: "Proprietary Trader",
+        org: "E8 Markets",
+        meta: "Jan 2025 – May 2025",
+        bullets: [
+          "Ran systematic strategies with dynamic risk management across FX and crypto.",
+          "~3% average monthly return within strict drawdown/leverage limits.",
+        ],
+      },
+      {
+        role: "Sales Executive",
+        org: "DID Electrical",
+        meta: "Sep 2024 – Jan 2025",
+        bullets: ["Generated €100k+ sales in 3 months; managed invoicing and after-sales support."],
+      },
+    ],
+    []
+  );
+
+  const showGithub = GITHUB_URL && GITHUB_URL !== "#";
+
+  function openProject(p) {
+    setActiveProject(p);
+    document.body.style.overflow = "hidden";
+  }
+  function closeProject() {
+    setActiveProject(null);
+    document.body.style.overflow = "";
+  }
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === "Escape") closeProject();
+    }
+    if (activeProject) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProject]);
+
+  return (
+    <div className="min-h-screen bg-white text-zinc-950">
+      {/* Project modal */}
+      <ProjectModal project={activeProject} onClose={closeProject} />
+
+      {/* Top nav */}
+      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+          {/* Mini logo dot */}
+          <a
+            href="#"
+            aria-label="Home"
+            className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-white shadow-sm pointer-events-auto"
+          >
+            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ACCENT_HEX }} />
+          </a>
+
+          {/* Desktop */}
+          <div className="hidden md:flex items-center gap-8">
+            <nav className="flex items-center gap-6">
+              {navLinks.map((l) => (
+                <NavLink key={l.href} href={l.href}>
+                  {l.label}
+                </NavLink>
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <OutlineButton asChild>
+                <a href={`mailto:${EMAIL}`} className="pointer-events-auto">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Contact
+                </a>
+              </OutlineButton>
+              <PrimaryButton asChild>
+                <a href={CV_URL} target="_blank" rel="noreferrer" className="pointer-events-auto">
+                  Download CV <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </PrimaryButton>
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden">
+            <OutlineButton onClick={() => setMenuOpen((v) => !v)}>Menu</OutlineButton>
+          </div>
+        </div>
+
+        {menuOpen ? (
+          <div className="md:hidden border-t border-zinc-200">
+            <div className="mx-auto max-w-6xl px-4 py-3 flex flex-col gap-3">
+              {navLinks.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="text-sm text-zinc-600 hover:text-zinc-950 pointer-events-auto"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <div className="flex gap-2 pt-2">
+                <OutlineButton asChild>
+                  <a href={`mailto:${EMAIL}`} className="pointer-events-auto">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Contact
+                  </a>
+                </OutlineButton>
+                <PrimaryButton asChild>
+                  <a href={CV_URL} target="_blank" rel="noreferrer" className="pointer-events-auto">
+                    Download CV <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </PrimaryButton>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </header>
+
+      {/* Hero */}
+      <main>
+        <section className="bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+            <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+              <div>
+                <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+                  <span className="text-zinc-950">Systems for finance + risk,</span>
+                  <br />
+                  <span className="text-zinc-600">executed with analytics and automation.</span>
+                </h1>
+
+                <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600">
+                  I design tools and systems that make better decisions inevitable.
+                </p>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <PrimaryButton asChild>
+                    <a href="#projects" className="pointer-events-auto">
+                      Projects <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </PrimaryButton>
+                  <OutlineButton asChild>
+                    <a href="#experience" className="pointer-events-auto">
+                      Experience
+                    </a>
+                  </OutlineButton>
+                </div>
+
+                {/* Left-aligned, smooth */}
+                <div className="mt-6 flex items-center justify-start gap-3 text-sm text-zinc-600">
+                  <a
+                    href={LINKEDIN_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 leading-none hover:text-zinc-950 transition pointer-events-auto"
+                  >
+                    <Linkedin className="h-4 w-4 shrink-0 translate-y-[1px]" style={{ color: ACCENT_HEX }} />{" "}
+                    LinkedIn
+                  </a>
+                  {showGithub ? (
+                    <>
+                      <Separator orientation="vertical" className="h-4 self-center bg-zinc-200" />
+                      <a
+                        href={GITHUB_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 leading-none hover:text-zinc-950 transition pointer-events-auto"
+                      >
+                        <Github className="h-4 w-4 shrink-0 translate-y-[1px]" style={{ color: ACCENT_HEX }} />{" "}
+                        GitHub
+                      </a>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Profile card */}
+              <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg text-zinc-950">
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white">
+                      <UserRound className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+                    </div>
+                    Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+                      <img src={PHOTO_URL} alt="Max profile" className="h-full w-full object-cover" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold">Max Kyrylyuk</div>
+                      <div className="text-sm text-zinc-600">Systems • Risk • Execution</div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                    <div className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                      <MapPin className="h-4 w-4" style={{ color: ACCENT_HEX }} />
+                      Dublin, Ireland • Open to internships / grad roles
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                    <div className="text-sm font-medium text-zinc-950">Currently</div>
+                    <div className="mt-1 text-sm text-zinc-600">Investment Analyst Intern — TET Capital</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["Python", "SQL", "CFDs"].map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <PrimaryButton className="w-full" asChild>
+                    <a href={`mailto:${EMAIL}`} className="pointer-events-auto">
+                      Email <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </PrimaryButton>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <Divider />
+
+        {/* About */}
+        <Section id="about" tone="soft">
+          <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-xl text-zinc-950">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white">
+                  <Info className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+                </div>
+                About
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm leading-relaxed text-zinc-600">
+              Hi im Max, an accounting & finance soon to be grad who thinks like a engineer. I'm curious about how
+              markets, businesses, and people really work, I naturally gravitated toward systems. What started in
+              accounting evolved into building trading models, risk dashboards, and automation tools. I focus on
+              creating clarity, simplifying complexity, and making better decisions inevitable.
+            </CardContent>
+          </Card>
+        </Section>
+
+        <Divider />
+
+        {/* Projects */}
+        <Section id="projects" tone="white">
+          <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-xl text-zinc-950">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white">
+                  <Folder className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+                </div>
+                Projects
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {projects.map((p) => (
+                  <div key={p.title}>
+                    <ProjectCard p={p} onExpand={openProject} />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </Section>
+
+        <Divider />
+
+        {/* Experience + Education */}
+        <Section id="experience" tone="soft">
+          <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+            <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-xl text-zinc-950">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white">
+                    <Briefcase className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+                  </div>
+                  Experience
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-zinc-600">
+                {experience.map((e) => (
+                  <ExperienceItem key={`${e.role}-${e.org}`} {...e} />
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-xl text-zinc-950">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white">
+                    <GraduationCap className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+                  </div>
+                  Education
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-zinc-600">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <div className="font-semibold text-zinc-950">Dublin City University</div>
+                  <div className="mt-1">Bachelor's — Accounting and Finance</div>
+                  <div className="mt-1 text-xs text-zinc-500">Sep 2023 – May 2026</div>
+                </div>
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <div className="font-semibold text-zinc-950">Kingswood College</div>
+                  <div className="mt-1">Leaving Certificate Established</div>
+                  <div className="mt-1 text-xs text-zinc-500">2018 – 2023</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Section>
+
+        <Divider />
+
+        {/* Links (separate from Education) */}
+        <Section id="links" tone="white">
+          <Card className="rounded-2xl border-zinc-200 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-xl text-zinc-950">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white">
+                  <LinkIcon className="h-5 w-5" style={{ color: ACCENT_HEX }} />
+                </div>
+                Links
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-zinc-600">
+              <a
+                href={LINKEDIN_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 hover:bg-zinc-50 transition pointer-events-auto"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Linkedin className="h-4 w-4 shrink-0 translate-y-[1px]" style={{ color: ACCENT_HEX }} /> LinkedIn
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 hover:bg-zinc-50 transition pointer-events-auto"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Github className="h-4 w-4 shrink-0 translate-y-[1px]" style={{ color: ACCENT_HEX }} /> GitHub
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+
+              <a
+                href={`mailto:${EMAIL}`}
+                className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 hover:bg-zinc-50 transition pointer-events-auto"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Mail className="h-4 w-4" style={{ color: ACCENT_HEX }} /> {EMAIL}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+
+              <a
+                href={CV_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 hover:bg-zinc-50 transition pointer-events-auto"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4" style={{ color: ACCENT_HEX }} /> Download CV
+                </span>
+                <span className="text-xs text-zinc-500">PDF</span>
+              </a>
+            </CardContent>
+          </Card>
+        </Section>
+
+        {/* Minimal footer */}
+        <footer className="border-t border-zinc-200 bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-zinc-600">
+            <div className="text-center">© {new Date().getFullYear()} Max Kyrylyuk</div>
+          </div>
+        </footer>
+      </main>
+    </div>
+  );
+}
